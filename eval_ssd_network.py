@@ -72,25 +72,26 @@ tf.app.flags.DEFINE_integer(
 tf.app.flags.DEFINE_string(
     'master', '', 'The address of the TensorFlow master to use.')
 tf.app.flags.DEFINE_string(
-    'checkpoint_path', '/tmp/tfmodel/',
+    'checkpoint_path', 'checkpoints/ssd_300_vgg.ckpt',
     'The directory where the model was written to or an absolute path to a '
     'checkpoint file.')
 tf.app.flags.DEFINE_string(
-    'eval_dir', '/tmp/tfmodel/', 'Directory where the results are saved to.')
+    'eval_dir', './logs/', 'Directory where the results are saved to.')
 tf.app.flags.DEFINE_integer(
     'num_preprocessing_threads', 4,
     'The number of threads used to create the batches.')
 tf.app.flags.DEFINE_string(
-    'dataset_name', 'imagenet', 'The name of the dataset to load.')
+    'dataset_name', 'pascalvoc_2012', 'The name of the dataset to load.')
 tf.app.flags.DEFINE_string(
-    'dataset_split_name', 'test', 'The name of the train/test split.')
+    'dataset_split_name', 'train', 'The name of the train/test split.')
 tf.app.flags.DEFINE_string(
-    'dataset_dir', None, 'The directory where the dataset files are stored.')
+    'dataset_dir', '/media/huhui/Windows/datasets3/VOC/out_voc2012/',
+    'The directory where the dataset files are stored.')
 tf.app.flags.DEFINE_string(
-    'model_name', 'inception_v3', 'The name of the architecture to evaluate.')
+    'model_name', 'ssd_300_vgg', 'The name of the architecture to evaluate.')
 tf.app.flags.DEFINE_string(
     'preprocessing_name', None, 'The name of the preprocessing to use. If left '
-    'as `None`, then the model_name flag is used.')
+                                'as `None`, then the model_name flag is used.')
 tf.app.flags.DEFINE_float(
     'moving_average_decay', None,
     'The decay to use for the moving average.'
@@ -100,8 +101,17 @@ tf.app.flags.DEFINE_float(
 tf.app.flags.DEFINE_boolean(
     'wait_for_checkpoints', False, 'Wait for new checkpoints in the eval loop.')
 
-
 FLAGS = tf.app.flags.FLAGS
+
+
+def flatten(x):
+    result = []
+    for el in x:
+        if isinstance(el, tuple):
+            result.extend(flatten(el))
+        else:
+            result.append(el)
+    return result
 
 
 def main(_):
@@ -310,12 +320,13 @@ def main(_):
 
             # Standard evaluation loop.
             start = time.time()
+            eval_op = flatten(list(names_to_updates.values()))
             slim.evaluation.evaluate_once(
                 master=FLAGS.master,
                 checkpoint_path=checkpoint_path,
                 logdir=FLAGS.eval_dir,
                 num_evals=num_batches,
-                eval_op=list(names_to_updates.values()),
+                eval_op=eval_op,  # list(names_to_updates.values()),
                 variables_to_restore=variables_to_restore,
                 session_config=config)
             # Log time spent.
